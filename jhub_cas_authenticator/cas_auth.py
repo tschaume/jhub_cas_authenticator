@@ -61,11 +61,14 @@ class CASLoginHandler(BaseHandler):
             app_log.debug("Validating service ticket {0}...".format(ticket[:10]))
             result = yield self.validate_service_ticket(ticket)
             is_valid, user, attributes = result
+            api_key = None
             if is_valid:
                 app_log.debug("Service ticket was valid.")
                 app_log.debug("User is '{0}'.".format(user))
                 for a, v in attributes:
                     app_log.debug("Attribute {0}: {1}".format(a, v))
+                    if a == 'api_key':
+                        api_key = v
                 required_attribs = self.authenticator.cas_required_attribs
                 if not required_attribs.issubset(attributes):
                     app_log.debug("Missing required attributes:")
@@ -74,7 +77,7 @@ class CASLoginHandler(BaseHandler):
                         app_log.debug("Attribute {0}: {1}".format(a, v))
                     web.HTTPError(401)
                 app_log.debug("CAS authentication successful for '{0}'.".format(user))
-                avatar = self.user_from_username(user)
+                avatar = self.user_from_username(user, api_key)
                 self.set_login_cookie(avatar)
                 self.redirect(url_path_join(self.hub.server.base_url, 'home'))
             else:
